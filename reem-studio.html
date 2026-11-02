@@ -1137,9 +1137,9 @@ const unb64u = s => { try{ const bin = atob(s.replace(/-/g,'+').replace(/_/g,'/'
 function fileKey(file){
   const m = file.name.match(/(\.[a-z0-9]{1,8})$/i), ext = m ? m[1].toLowerCase() : '';
   const base = ext ? file.name.slice(0, -ext.length) : file.name;
-  return Date.now() + '-' + Math.random().toString(36).slice(2,6) + '~' + b64u(base.slice(0,120)) + ext;
+  return Date.now() + '-' + Math.random().toString(36).slice(2,6) + '!' + b64u(base.slice(0,120)) + ext;
 }
-function fileLabel(key){ const i = key.indexOf('~'); if(i<0) return key; const rest = key.slice(i+1), m = rest.match(/(\.[a-z0-9]{1,8})$/i), ext = m ? m[1] : ''; return (unb64u(ext ? rest.slice(0,-ext.length) : rest) || 'ملف') + ext; }
+function fileLabel(key){ const i = key.search(/[!~]/); if(i<0) return key; const rest = key.slice(i+1), m = rest.match(/(\.[a-z0-9]{1,8})$/i), ext = m ? m[1] : ''; return (unb64u(ext ? rest.slice(0,-ext.length) : rest) || 'ملف') + ext; }
 function fileSize(n){ if(!n && n!==0) return ''; if(n<1024) return n+' بايت'; if(n<1048576) return (n/1024).toFixed(0)+' كيلوبايت'; return (n/1048576).toFixed(1)+' ميجابايت'; }
 function filesPrefix(pid){ return sync.session.user.id + '/' + pid; }
 function filesSection(p){
