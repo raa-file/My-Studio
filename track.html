@@ -72,6 +72,7 @@ h2{font-size:16px;margin:0 0 10px}
 .links{display:flex;flex-direction:column;gap:8px}
 .links a{display:flex;flex-direction:column;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);text-decoration:none;color:var(--ink);min-width:0}
 .links a b{font-size:14px}
+.links a.dl .dl-t{color:var(--accent);font-weight:600;direction:rtl;text-align:right}
 .links a span{font-size:12.5px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:right}
 .foot{text-align:center;color:var(--muted);font-size:12.5px}
 .msg{text-align:center;padding:30px 18px}
@@ -141,6 +142,8 @@ function render(o){
   const [nowT, nowS, nowC] = NOW[st] || NOW.new;
   const revs = Array.isArray(o.revisions) ? o.revisions : [];
   const links = parseLinks(o.links);
+  const files = Array.isArray(o.files) ? o.files.filter(f=>f && f.path && f.name) : [];
+  currentFiles = files;
   const first = String(o.client||'').trim().split(/\s+/)[0];
   const dueTxt = st==='done' ? (o.completed_at ? fmtD(o.completed_at) : '') : (o.due ? fmtD(o.due) : '');
   document.title = o.title + ' | my studio';
@@ -156,10 +159,34 @@ function render(o){
       '</div>'+
     '</section>'+
     (revs.length ? '<section class="card"><h2>تعديلاتك</h2>'+revs.map((r,i)=>{ const [l,c] = REV[r.status] || REV.new; return '<div class="rev"><span class="n">تعديل '+(i+1)+'</span><p>'+esc(r.description)+'</p><span class="pill '+c+'">'+l+'</span></div>'; }).join('')+'</section>' : '')+
-    (links.length ? '<section class="card"><h2>روابط طلبك</h2><div class="links">'+links.map((l,i)=>'<a href="'+esc(l.url)+'" target="_blank" rel="noopener noreferrer"><b>'+esc(l.label||('رابط '+(i+1)))+'</b><span>'+esc(l.url)+'</span></a>').join('')+'</div></section>' : '')+
+    (links.length || files.length ? '<section class="card"><h2>'+(links.length && files.length ? 'روابط وملفات طلبك' : files.length ? 'ملفات طلبك' : 'روابط طلبك')+'</h2><div class="links">'+
+      links.map((l,i)=>'<a href="'+esc(l.url)+'" target="_blank" rel="noopener noreferrer"><b>'+esc(l.label||('رابط '+(i+1)))+'</b><span>'+esc(l.url)+'</span></a>').join('')+
+      files.map((f,i)=>'<a class="dl" href="#" data-i="'+i+'"><b>'+esc(f.name)+'</b><span class="dl-t">تنزيل الملف ⬇</span></a>').join('')+
+    '</div></section>' : '')+
     '<p class="foot">الصفحة تتحدّث تلقائيًا · <button class="refresh" type="button" id="refresh">تحديث الآن</button></p>';
   document.getElementById('refresh').onclick = load;
 }
+let currentFiles = [];
+async function signFile(f){
+  const enc = f.path.split('/').map(encodeURIComponent).join('/');
+  const res = await fetch(cfg.url + '/storage/v1/object/sign/order-files/' + enc, {
+    method:'POST', headers:{'apikey':cfg.key, 'Authorization':'Bearer '+cfg.key, 'Content-Type':'application/json'}, body: JSON.stringify({expiresIn: 600})
+  });
+  if(!res.ok) throw new Error('sign '+res.status);
+  const j = await res.json(), rel = j.signedURL || j.signedUrl;
+  if(!rel) throw new Error('no url');
+  const full = /^https?:/.test(rel) ? rel : cfg.url + '/storage/v1' + rel;
+  return full + (full.includes('?') ? '&' : '?') + 'download=' + encodeURIComponent(f.name);
+}
+document.addEventListener('click', async e => {
+  const a = e.target.closest('a.dl'); if(!a) return;
+  e.preventDefault();
+  const f = currentFiles[+a.dataset.i]; if(!f) return;
+  const label = a.querySelector('.dl-t'), old = label.textContent;
+  label.textContent = 'جارٍ التجهيز…';
+  try{ location.href = await signFile(f); label.textContent = old; }
+  catch(err){ label.textContent = 'تعذّر التنزيل، حاولي مرة ثانية'; setTimeout(()=>{ label.textContent = old; }, 3000); }
+});
 let cfg = parseLink(), busy = false;
 async function load(){
   if(!cfg){ message('الرابط غير مكتمل','تأكدي أنك فتحتِ الرابط كاملًا كما وصلك.'); return; }

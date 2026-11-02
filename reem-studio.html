@@ -356,6 +356,8 @@ tbody tr:hover{background:var(--surface-2)}
 .file-item b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .file-item .li-ic{color:var(--icon);display:grid}.file-item .li-ic svg{width:18px;height:18px}
 .file-item .icon-btn{width:32px;height:32px;flex:0 0 32px}
+.file-item.shared{border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+.file-share{cursor:pointer;font:inherit;font-size:12px;font-weight:600;flex:0 0 auto}
 
 /* share */
 .share-panel{border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
@@ -1124,7 +1126,7 @@ function shareSection(p){
     body = '<div class="share-link"><input id="share-url" readonly dir="ltr" value="'+esc(url)+'" aria-label="رابط المتابعة"><button class="btn sm" type="button" data-act="share-copy">نسخ</button></div>'+
       '<div class="row">'+(c.num?'<a class="btn wa sm" href="'+esc(waUrl(c)+'?text='+encodeURIComponent(msg))+'" target="_blank" rel="noopener noreferrer">'+I.wa+'إرسال للعميلة</a>':'')+
         '<a class="btn sm" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">معاينة صفحة العميلة</a></div>'+
-      '<label class="toggle" style="color:var(--ink)"><input type="checkbox" data-change="share-links" data-id="'+p.id+'"'+(p.shareLinks?' checked':'')+'> إظهار روابط المشروع للعميلة</label>'+
+      '<p class="small muted" style="margin:0">لمشاركة ملف للتنزيل، اضغطي «مشاركة» بجانبه في قسم ملفات الطلب.</p><label class="toggle" style="color:var(--ink)"><input type="checkbox" data-change="share-links" data-id="'+p.id+'"'+(p.shareLinks?' checked':'')+'> إظهار روابط المشروع للعميلة</label>'+
       '<div class="row"><button class="btn ghost sm" type="button" data-act="share-renew" data-id="'+p.id+'">رابط جديد (يوقف القديم)</button><button class="btn ghost sm danger" type="button" data-act="share-off" data-id="'+p.id+'">إيقاف المشاركة</button></div>';
   }
   return '<section class="panel share-panel"><div class="section-head"><h3>مشاركة سير الطلب مع العميلة</h3>'+(p.shareToken?'<span class="chip ok">مفعّلة</span>':'')+'</div><div class="stack">'+body+'</div></section>';
@@ -1163,8 +1165,10 @@ async function loadFiles(pid){
     const urls = {}; (signed.data||[]).forEach(x => { if(x && x.signedUrl) urls[x.path] = x.signedUrl; });
     box.innerHTML = files.map((f,i) => {
       const path = paths[i], name = fileLabel(f.name), url = urls[path] || '';
-      return '<div class="file-item"><span class="li-ic">'+I.archive+'</span>'+
+      const pr = db.projects.find(x=>x.id===pid), shared = !!(pr && (pr.shareFiles||[]).some(x=>x.path===path));
+      return '<div class="file-item'+(shared?' shared':'')+'"><span class="li-ic">'+I.archive+'</span>'+
         (url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">':'<span class="fname">')+'<b>'+esc(name)+'</b><span class="muted small">'+esc([fileSize(f.metadata && f.metadata.size), f.created_at ? fmtTime(f.created_at) : ''].filter(Boolean).join(' · '))+'</span>'+(url?'</a>':'</span>')+
+        '<button class="chip file-share'+(shared?' ok':'')+'" type="button" data-act="file-share" data-id="'+pid+'" data-path="'+esc(path)+'" data-name="'+esc(name)+'" aria-pressed="'+shared+'" title="إظهار الملف للعميلة في صفحة المتابعة">'+(shared?'✓ يظهر للعميلة':'مشاركة')+'</button>'+
         '<button class="icon-btn" type="button" data-act="file-del" data-id="'+pid+'" data-path="'+esc(path)+'" data-name="'+esc(name)+'" aria-label="حذف الملف">'+I.trash+'</button></div>';
     }).join('');
   }catch(e){
@@ -1463,7 +1467,10 @@ document.addEventListener('click', e => {
       case 'share-on': case 'share-renew': { const p = db.projects.find(x=>x.id===id); const renew = act==='share-renew'; p.shareToken = newShareToken(); touch(p); logEvent(p.id, renew?'أُنشئ رابط متابعة جديد وأُوقف القديم':'فُعّلت مشاركة سير الطلب مع العميلة'); save(renew?'تم إنشاء رابط جديد':'تم إنشاء رابط المتابعة'); scheduleSync(0); render(); break; }
       case 'share-off': { const p = db.projects.find(x=>x.id===id); confirmBox('إيقاف المشاركة؟','الرابط اللي أرسلتيه للعميلة يتوقف عن العمل. تقدرين تنشئين رابطًا جديدًا لاحقًا.','إيقاف', ()=>{ p.shareToken = ''; touch(p); logEvent(p.id,'أُوقفت مشاركة سير الطلب'); save('تم إيقاف المشاركة'); scheduleSync(0); render(); }); break; }
       case 'share-copy': { const inp = $('#share-url'); const done = ()=>toast('تم نسخ الرابط'); if(navigator.clipboard) navigator.clipboard.writeText(inp.value).then(done, ()=>{ inp.select(); toast('حدّدت الرابط، انسخيه يدويًا'); }); else { inp.select(); document.execCommand && document.execCommand('copy'); done(); } break; }
-      case 'file-del': { const path = a.dataset.path, name = a.dataset.name; confirmBox('حذف الملف؟','سيُحذف «'+name+'» نهائيًا من ملفات الطلب.','حذف', async ()=>{ const {error} = await sync.client.storage.from(FILE_BUCKET).remove([path]); if(error){ toast('تعذّر حذف الملف: '+error.message,'err'); return; } logEvent(id,'حُذف ملف: '+name); save('تم حذف الملف'); render(); }); break; }
+      case 'file-share': { const p = db.projects.find(x=>x.id===id), path = a.dataset.path, name = a.dataset.name; const list = p.shareFiles || []; const on = !list.some(x=>x.path===path);
+        p.shareFiles = on ? list.concat([{name, path}]) : list.filter(x=>x.path!==path); touch(p); logEvent(p.id, (on?'شوركت مع العميلة: ':'أُلغيت مشاركة: ')+name);
+        save(on ? (p.shareToken ? 'الملف يظهر للعميلة الآن' : 'سيظهر للعميلة بعد إنشاء رابط المتابعة') : 'الملف مخفي عن العميلة'); scheduleSync(0); loadFiles(p.id); break; }
+      case 'file-del': { const path = a.dataset.path, name = a.dataset.name; confirmBox('حذف الملف؟','سيُحذف «'+name+'» نهائيًا من ملفات الطلب.','حذف', async ()=>{ const {error} = await sync.client.storage.from(FILE_BUCKET).remove([path]); if(error){ toast('تعذّر حذف الملف: '+error.message,'err'); return; } const pp = db.projects.find(x=>x.id===id); if(pp && pp.shareFiles) pp.shareFiles = pp.shareFiles.filter(x=>x.path!==path); logEvent(id,'حُذف ملف: '+name); save('تم حذف الملف'); render(); }); break; }
       case 'sync-now': syncNow(true); break;
       case 'sync-logout': confirmBox('تسجيل الخروج؟','تُمسح نسخة البيانات من هذا الجهاز فقط، وتبقى محفوظة في السحابة وتعود عند تسجيل الدخول مرة أخرى.','تسجيل الخروج', signOut); break;
       case 'sync-edit-config': ui.editSyncConfig = true; render(); break;
@@ -1575,8 +1582,8 @@ const TABLES = [
     toRow:r=>({id:r.id,name:r.name||'',cc:r.cc||'966',num:r.num||'',follow_up:N(r.followUp),notes:r.notes||'',demo:!!r.demo,created_at:N(r.createdAt)}),
     fromRow:w=>({id:w.id,name:w.name,cc:w.cc,num:w.num,followUp:S(w.follow_up),notes:S(w.notes),demo:!!w.demo,createdAt:TS(w.created_at)})},
   {key:'projects', table:'projects',
-    toRow:p=>({id:p.id,client_id:p.clientId,title:p.title||'',service:p.service||'',description:p.desc||'',received:N(p.received),due:N(p.due),price:NUM(p.price),payment:p.payment||'unpaid',link:p.link||'',notes:p.notes||'',status:p.status||'new',archived:!!p.archived,share_token:N(p.shareToken),share_links:!!p.shareLinks,completed_at:N(p.completedAt),demo:!!p.demo,created_at:N(p.createdAt),updated_at:N(p.updatedAt)}),
-    fromRow:w=>({id:w.id,clientId:w.client_id,title:w.title,service:w.service,desc:S(w.description),received:S(w.received),due:S(w.due),price:w.price===null?'':Number(w.price),payment:w.payment,link:S(w.link),notes:S(w.notes),status:w.status,archived:!!w.archived,shareToken:S(w.share_token),shareLinks:!!w.share_links,completedAt:S(w.completed_at),demo:!!w.demo,createdAt:TS(w.created_at),updatedAt:TS(w.updated_at)})},
+    toRow:p=>({id:p.id,client_id:p.clientId,title:p.title||'',service:p.service||'',description:p.desc||'',received:N(p.received),due:N(p.due),price:NUM(p.price),payment:p.payment||'unpaid',link:p.link||'',notes:p.notes||'',status:p.status||'new',archived:!!p.archived,share_token:N(p.shareToken),share_links:!!p.shareLinks,share_files:(p.shareFiles||[]).map(f=>({name:f.name,path:f.path})),completed_at:N(p.completedAt),demo:!!p.demo,created_at:N(p.createdAt),updated_at:N(p.updatedAt)}),
+    fromRow:w=>({id:w.id,clientId:w.client_id,title:w.title,service:w.service,desc:S(w.description),received:S(w.received),due:S(w.due),price:w.price===null?'':Number(w.price),payment:w.payment,link:S(w.link),notes:S(w.notes),status:w.status,archived:!!w.archived,shareToken:S(w.share_token),shareLinks:!!w.share_links,shareFiles:(Array.isArray(w.share_files)?w.share_files:[]).map(f=>({name:f.name,path:f.path})),completedAt:S(w.completed_at),demo:!!w.demo,createdAt:TS(w.created_at),updatedAt:TS(w.updated_at)})},
   {key:'revisions', table:'revisions',
     toRow:r=>({id:r.id,project_id:r.projectId,description:r.desc||'',received:N(r.received),status:r.status||'new',done_date:N(r.doneDate),link:r.link||'',notes:r.notes||'',demo:!!r.demo,created_at:N(r.createdAt),updated_at:N(r.updatedAt)}),
     fromRow:w=>({id:w.id,projectId:w.project_id,desc:w.description,received:S(w.received),status:w.status,doneDate:S(w.done_date),link:S(w.link),notes:S(w.notes),demo:!!w.demo,createdAt:TS(w.created_at),updatedAt:TS(w.updated_at)})},
