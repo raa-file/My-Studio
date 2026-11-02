@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>my studio | إدارة الطلبات</title>
+<title>My Studio | إدارة الطلبات</title>
 <meta name="theme-color" content="#FFFFFF">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=3">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=3">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=4">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=4">
+<link rel="manifest" href="manifest.webmanifest?v=4">
+<script>(function(){try{var t=localStorage.getItem('mystudio.theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="my studio">
+<meta name="apple-mobile-web-app-title" content="My Studio">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Poppins:wght@400;500&display=swap">
@@ -39,7 +40,7 @@
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme="light"]){
     --bg:#171314; --surface:#201A1C; --surface-2:#261F22; --ink:#F1EAED; --muted:#A99FA4; --line:#352C30;
     --accent:#E883AE; --accent-ink:#2A0E1A; --accent-soft:#3A2230; --rose:#E8A4A9; --magenta:#EC7FAA; --icon:#E39BC6;
     --danger:#F08A92; --danger-soft:#3A1F22; --warn:#F2B65C; --warn-soft:#3A2D17; --ok:#7FD3A3; --ok-soft:#183324;
@@ -50,6 +51,17 @@
     --shadow:0 1px 2px rgba(0,0,0,.3);
     color-scheme:dark;
   }
+}
+:root[data-theme="dark"]{
+    --bg:#171314; --surface:#201A1C; --surface-2:#261F22; --ink:#F1EAED; --muted:#A99FA4; --line:#352C30;
+    --accent:#E883AE; --accent-ink:#2A0E1A; --accent-soft:#3A2230; --rose:#E8A4A9; --magenta:#EC7FAA; --icon:#E39BC6;
+    --danger:#F08A92; --danger-soft:#3A1F22; --warn:#F2B65C; --warn-soft:#3A2D17; --ok:#7FD3A3; --ok-soft:#183324;
+    --s-new:#8FB2F2; --s-new-bg:#1E2A42; --s-progress:#F2B65C; --s-progress-bg:#3A2D17;
+    --s-preview:#C2A6F2; --s-preview-bg:#2C2340; --s-reply:#F4A27E; --s-reply-bg:#3D2619;
+    --s-revisions:#F08A92; --s-revisions-bg:#3A1F22; --s-ready:#6FD1C5; --s-ready-bg:#16332F;
+    --s-done:#A9BDB3; --s-done-bg:#25302C; --s-cancelled:#B3A9AE; --s-cancelled-bg:#2E2729; --demo:#F2D36B; --demo-bg:#3A3215;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+    color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -348,6 +360,11 @@ tbody tr:hover{background:var(--surface-2)}
 .tab span{white-space:nowrap}
 @media (max-width:420px){.tab{font-size:10.5px}}
 
+/* theme toggle */
+.topbar .theme-btn{margin-inline-start:auto}
+.topbar .theme-btn + .icon-btn{margin-inline-start:0}
+.theme-side{justify-content:flex-start;gap:12px;margin-top:auto;color:var(--muted)}
+
 /* files */
 .file-pick{cursor:pointer}
 .files-list{display:flex;flex-direction:column;gap:6px}
@@ -411,8 +428,9 @@ tbody tr:hover{background:var(--surface-2)}
 <body>
 
 <header class="topbar">
-  <a class="brand" href="#home" aria-label="my studio"><b dir="ltr"><span class="r1">my</span> <span class="r2">studio</span></b><small>GRAPHIC DESIGN</small></a>
+  <a class="brand" href="#home" aria-label="My Studio"><b dir="ltr"><span class="r1">My</span> <span class="r2">Studio</span></b><small>GRAPHIC DESIGN</small></a>
   <a class="sync-pill" id="sync-pill" href="#settings" hidden></a>
+  <button class="icon-btn theme-btn" type="button" data-act="theme" aria-label="تبديل المظهر الفاتح والداكن"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/></svg></button>
   <a class="icon-btn" href="#settings" aria-label="الإعدادات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
 </header>
 
@@ -441,6 +459,18 @@ tbody tr:hover{background:var(--surface-2)}
    لا تضعي مفتاح service_role هنا أبدًا. */
 const SUPABASE_URL = 'https://khvdbbycifjjvnrhlann.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtodmRiYnljaWZqanZucmhsYW5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwODk4ODksImV4cCI6MjEwNzY2NTg4OX0.ZidFF8a0MYRnIuO45bUHriM7RxOyvZ5oGlJTj9rcwNY';
+
+/* ========== Light / dark ========== */
+const THEME_KEY = 'mystudio.theme';
+const THEME_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/></svg>';
+function isDark(){ const t = document.documentElement.getAttribute('data-theme'); return t ? t==='dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; }
+function applyThemeColor(){ const m = document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content', isDark() ? '#171314' : '#FFFFFF'); }
+function toggleTheme(){
+  const next = isDark() ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+  applyThemeColor(); renderNav();
+}
 
 /* ========== Constants ========== */
 const STORE_KEY = 'reemstudio.v1';
@@ -634,8 +664,9 @@ function renderNav(){
   const r = route().name === 'p' ? 'orders' : route().name;
   const links = NAV.map(([k,v]) => '<a class="tab" href="#'+k+'"'+(r===k?' aria-current="page"':'')+'>'+I[k]+'<span>'+v+'</span></a>').join('');
   $('#tabbar').innerHTML = links;
-  $('#side').innerHTML = '<a class="brand" href="#home" aria-label="my studio"><b dir="ltr"><span class="r1">my</span> <span class="r2">studio</span></b><small>GRAPHIC DESIGN</small></a><a class="sync-pill" id="sync-pill-side" href="#settings" hidden></a>' + links +
-    '<button class="btn primary add" type="button" data-act="new-order">'+I.plus+'طلب جديد</button>';
+  $('#side').innerHTML = '<a class="brand" href="#home" aria-label="My Studio"><b dir="ltr"><span class="r1">My</span> <span class="r2">Studio</span></b><small>GRAPHIC DESIGN</small></a><a class="sync-pill" id="sync-pill-side" href="#settings" hidden></a>' + links +
+    '<button class="btn primary add" type="button" data-act="new-order">'+I.plus+'طلب جديد</button>'+
+    '<button class="btn ghost theme-side" type="button" data-act="theme">'+THEME_ICON+'<span>'+(isDark()?'المظهر الفاتح':'المظهر الداكن')+'</span></button>';
   setSync(sync.status);
 }
 function render(){
@@ -1471,6 +1502,7 @@ document.addEventListener('click', e => {
         p.shareFiles = on ? list.concat([{name, path}]) : list.filter(x=>x.path!==path); touch(p); logEvent(p.id, (on?'شوركت مع العميلة: ':'أُلغيت مشاركة: ')+name);
         save(on ? (p.shareToken ? 'الملف يظهر للعميلة الآن' : 'سيظهر للعميلة بعد إنشاء رابط المتابعة') : 'الملف مخفي عن العميلة'); scheduleSync(0); loadFiles(p.id); break; }
       case 'file-del': { const path = a.dataset.path, name = a.dataset.name; confirmBox('حذف الملف؟','سيُحذف «'+name+'» نهائيًا من ملفات الطلب.','حذف', async ()=>{ const {error} = await sync.client.storage.from(FILE_BUCKET).remove([path]); if(error){ toast('تعذّر حذف الملف: '+error.message,'err'); return; } const pp = db.projects.find(x=>x.id===id); if(pp && pp.shareFiles) pp.shareFiles = pp.shareFiles.filter(x=>x.path!==path); logEvent(id,'حُذف ملف: '+name); save('تم حذف الملف'); render(); }); break; }
+      case 'theme': toggleTheme(); break;
       case 'sync-now': syncNow(true); break;
       case 'sync-logout': confirmBox('تسجيل الخروج؟','تُمسح نسخة البيانات من هذا الجهاز فقط، وتبقى محفوظة في السحابة وتعود عند تسجيل الدخول مرة أخرى.','تسجيل الخروج', signOut); break;
       case 'sync-edit-config': ui.editSyncConfig = true; render(); break;
@@ -1558,7 +1590,7 @@ function trySummaryNotification(force){
   const b = homeBuckets(); const n = b.dueToday.length + b.followToday.length, l = b.late.length + b.followLate.length;
   if(!n && !l && !force) return;
   try{
-    new Notification('my studio', {body: (n||l) ? ('اليوم: '+n+' · متأخر: '+l) : 'تم تفعيل الإشعارات', tag:'reem-daily'});
+    new Notification('My Studio', {body: (n||l) ? ('اليوم: '+n+' · متأخر: '+l) : 'تم تفعيل الإشعارات', tag:'reem-daily'});
     db.settings.lastNotified = today(); save();
   }catch(err){
     if(force) toast('متصفح الجوال لا يعرض إشعارات من صفحة بدون خدمة خلفية؛ التذكير سيظهر داخل التطبيق.','err');
@@ -1818,6 +1850,7 @@ function viewSyncSettings(){
   return '<section class="panel set"><h2>المزامنة بين الأجهزة</h2>'+body+'<p class="small muted" id="sync-status" style="margin:0">'+syncStatusHtml()+'</p></section>';
 }
 
+applyThemeColor();
 render();
 remindOnOpen();
 initSync();

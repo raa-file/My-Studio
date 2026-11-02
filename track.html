@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>متابعة طلبك | my studio</title>
+<title>متابعة طلبك | My Studio</title>
 <meta name="theme-color" content="#FFFFFF">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
-<link rel="icon" type="image/png" href="icon-192.png?v=3">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=4">
+<link rel="icon" type="image/png" href="icon-192.png?v=4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Poppins:wght@400&display=swap">
@@ -22,12 +22,18 @@
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme="light"]){
     --bg:#171314; --surface:#201A1C; --surface-2:#261F22; --ink:#F1EAED; --muted:#A99FA4; --line:#352C30;
     --blue:#EC7FAA; --sky:#E8A4A9; --accent:#E883AE; --accent-soft:#3A2230;
     --ok:#7FD3A3; --ok-soft:#183324; --warn:#F2B65C; --warn-soft:#3A2D17; --muted-soft:#1E2A38;
     color-scheme:dark;
   }
+}
+:root[data-theme="dark"]{
+    --bg:#171314; --surface:#201A1C; --surface-2:#261F22; --ink:#F1EAED; --muted:#A99FA4; --line:#352C30;
+    --blue:#EC7FAA; --sky:#E8A4A9; --accent:#E883AE; --accent-soft:#3A2230;
+    --ok:#7FD3A3; --ok-soft:#183324; --warn:#F2B65C; --warn-soft:#3A2D17; --muted-soft:#1E2A38;
+    color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -86,7 +92,7 @@ h2{font-size:16px;margin:0 0 10px}
 </head>
 <body>
 <main class="wrap" id="app">
-  <div class="brand"><b><span class="r1">my</span> <span class="r2">studio</span></b><small>GRAPHIC DESIGN</small></div>
+  <div class="brand"><b><span class="r1">My</span> <span class="r2">Studio</span></b><small>GRAPHIC DESIGN</small></div>
   <div class="card" aria-busy="true"><div class="skel" style="width:40%"></div><div class="skel" style="width:75%;height:20px"></div><div class="skel"></div><div class="skel" style="width:60%"></div></div>
 </main>
 <script>
@@ -119,7 +125,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const LOC = 'ar-u-ca-gregory-nu-latn';
 const fmtD = s => s ? new Intl.DateTimeFormat(LOC,{weekday:'long',day:'numeric',month:'long'}).format(new Date(s+'T00:00:00')) : '';
 const fmtT = s => s ? new Intl.DateTimeFormat(LOC,{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}).format(new Date(s)) : '';
-const BRAND = '<div class="brand"><b><span class="r1">my</span> <span class="r2">studio</span></b><small>GRAPHIC DESIGN</small></div>';
+const BRAND = '<div class="brand"><b><span class="r1">My</span> <span class="r2">Studio</span></b><small>GRAPHIC DESIGN</small></div>';
 const app = document.getElementById('app');
 
 function parseLink(){
@@ -146,7 +152,7 @@ function render(o){
   currentFiles = files;
   const first = String(o.client||'').trim().split(/\s+/)[0];
   const dueTxt = st==='done' ? (o.completed_at ? fmtD(o.completed_at) : '') : (o.due ? fmtD(o.due) : '');
-  document.title = o.title + ' | my studio';
+  document.title = o.title + ' | My Studio';
   app.innerHTML = BRAND +
     '<section class="card">'+
       (first ? '<p class="hello">أهلًا '+esc(first)+'، هذي حالة طلبك</p>' : '')+
