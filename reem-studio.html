@@ -298,6 +298,12 @@ tbody tr:hover{background:var(--surface-2)}
 .ev.due{background:var(--accent-soft)}
 .ev.follow{background:var(--s-preview-bg)}
 .ev.late{background:var(--danger-soft)}
+.ev.note{background:var(--s-ready-bg);color:var(--ink)}
+.ev.note svg{color:var(--s-ready)}
+.dots i.n{background:var(--s-ready)}
+.week .wd .lab span{display:block;margin-top:2px}
+.item .done-btn{flex:0 0 auto;white-space:nowrap}
+.item-link{display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-decoration:none;color:inherit}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
 .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:5px;background:var(--accent)}
 
@@ -530,7 +536,7 @@ const I = {
 };
 
 /* ========== Storage ========== */
-function emptyDb(){ return {version:1, clients:[], projects:[], revisions:[], tasks:[], events:[], content:[], settings:{}}; }
+function emptyDb(){ return {version:1, clients:[], projects:[], revisions:[], tasks:[], events:[], content:[], notes:[], settings:{}}; }
 let storageOk = true;
 function loadDb(){
   try{
@@ -542,7 +548,7 @@ function loadDb(){
 function normalizeDb(d){
   const base = emptyDb();
   if(!d || typeof d !== 'object') return base;
-  for(const k of ['clients','projects','revisions','tasks','events','content']) base[k] = Array.isArray(d[k]) ? d[k] : [];
+  for(const k of ['clients','projects','revisions','tasks','events','content','notes']) base[k] = Array.isArray(d[k]) ? d[k] : [];
   base.settings = (d.settings && typeof d.settings==='object') ? d.settings : {};
   return base;
 }
@@ -717,7 +723,8 @@ function viewHome(){
 
   const todayItems = [
     ...b.dueToday.map(p => item('due', p, 'تسليم اليوم: '+p.title, clientOf(p).name)),
-    ...b.followToday.map(c => itemClient(c, 'متابعة اليوم مع '+c.name, phoneDisplay(c)))
+    ...b.followToday.map(c => itemClient(c, 'متابعة اليوم مع '+c.name, phoneDisplay(c))),
+    ...notesOf(today()).map(n => '<button type="button" class="item" style="border:0;border-bottom:1px solid var(--line);background:none;text-align:start;width:100%" data-act="note-edit" data-id="'+n.id+'"><span class="kind" style="background:var(--s-ready-bg);color:var(--s-ready)">'+I.edit+'</span><span class="grow"><span class="t">'+esc(n.text)+'</span><span class="s">ملاحظة اليوم</span></span></button>')
   ];
   const attention = [
     ...b.late.map(p => item('late', p, p.title, 'متأخر '+dayWord(diffDays(p.due,today()))+' · '+clientOf(p).name)),
@@ -740,7 +747,7 @@ function viewHome(){
         (attention.length ? '<div class="list">'+attention.join('')+'</div>' : '<div class="panel"><div class="empty compact">كل شيء تحت السيطرة، لا متأخرات ولا انتظار.</div></div>')+'</section>'+
     '</div>'+
     (b.openRevs.length ? '<section class="section"><div class="section-head"><h2>تعديلات لم تُنفّذ بعد</h2><span class="muted small">'+b.openRevs.length+'</span></div><div class="list">'+
-      b.openRevs.map(r => { const p = db.projects.find(x=>x.id===r.projectId); return '<a class="item" href="#p/'+p.id+'"><span class="kind late">'+I.edit+'</span><span class="grow"><span class="t">'+esc(r.desc)+'</span><span class="s">'+esc(p.title)+' · '+esc(REV[r.status])+'</span></span></a>'; }).join('')+'</div></section>' : '')
+      b.openRevs.map(r => { const p = db.projects.find(x=>x.id===r.projectId); return '<div class="item"><a class="item-link" href="#p/'+p.id+'"><span class="kind late">'+I.edit+'</span><span class="grow"><span class="t">'+esc(r.desc)+'</span><span class="s">'+esc(p.title)+' · '+esc(REV[r.status])+'</span></span></a><button class="btn sm done-btn" type="button" data-act="rev-done" data-id="'+r.id+'">✓ تم التنفيذ</button></div>'; }).join('')+'</div></section>' : '')
   ));
 }
 function item(kind, p, t, s){
@@ -1281,9 +1288,16 @@ function calItems(d){
   const out = [];
   activeProjects().forEach(p => { if(p.due===d && p.status!=='cancelled') out.push({type: isOverdue(p)?'late':'due', p}); });
   db.clients.forEach(c => { if(c.followUp===d) out.push({type:'follow', c}); });
+  notesOf(d).forEach(n => out.push({type:'note', n}));
   return out;
 }
+function notesOf(d){ return db.notes.filter(n=>n.day===d).sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt))); }
+function noteForm(day, n){
+  return '<form class="form" id="note-form" novalidate data-day="'+day+'" data-id="'+(n?n.id:'')+'"><div class="field"><label for="note-text">الملاحظة · '+esc(fmtLong(day))+'</label><textarea id="note-text" name="text" style="min-height:110px" placeholder="مثال: اجتماع مع العميلة الساعة ٨، أو تذكير بإرسال الفاتورة">'+esc(n?n.text:'')+'</textarea></div>'+
+    '<div class="form-actions"><button class="btn primary" type="submit">'+(n?'حفظ التعديل':'إضافة الملاحظة')+'</button>'+(n?'<button class="btn danger" type="button" data-act="note-del" data-id="'+n.id+'">حذف</button>':'')+'<button class="btn" type="button" data-act="close-sheet">إلغاء</button></div></form>';
+}
 function evHtml(it){
+  if(it.n) return '<button type="button" class="ev note" style="border:0;text-align:start;width:100%" data-act="note-edit" data-id="'+it.n.id+'">'+I.edit.replace('<svg','<svg width="16" height="16" style="flex:0 0 16px"')+'<span>'+esc(it.n.text)+'</span></button>';
   if(it.p) return '<a class="ev '+it.type+'" href="#p/'+it.p.id+'">'+(it.type==='late'?I.alert:I.clock).replace('<svg','<svg width="16" height="16" style="flex:0 0 16px"')+'<span>تسليم: '+esc(it.p.title)+' · '+esc(clientOf(it.p).name)+'</span></a>';
   return '<button type="button" class="ev follow" style="border:0;text-align:start;width:100%" data-act="open-client" data-id="'+it.c.id+'">'+I.chat.replace('<svg','<svg width="16" height="16" style="flex:0 0 16px"')+'<span>متابعة: '+esc(it.c.name)+'</span></button>';
 }
@@ -1301,12 +1315,14 @@ function viewCalendar(){
       const s = ymd(d), its = calItems(s);
       if(i===35 && d.getMonth()!==a.getMonth()) break;
       cells += '<button type="button" class="day'+(d.getMonth()!==a.getMonth()?' out':'')+(s===t?' today':'')+'" data-act="cal-day" data-d="'+s+'" aria-pressed="'+(s===ui.calSel)+'" aria-label="'+esc(fmtLong(s))+(its.length?'، '+its.length+' مواعيد':'')+'">'+
-        '<span class="d">'+d.getDate()+'</span><span class="dots">'+its.slice(0,4).map(x=>'<i class="'+(x.type==='follow'?'f':x.type==='late'?'l':'')+'"></i>').join('')+'</span></button>';
+        '<span class="d">'+d.getDate()+'</span><span class="dots">'+its.slice(0,4).map(x=>'<i class="'+(x.type==='follow'?'f':x.type==='late'?'l':x.type==='note'?'n':'')+'"></i>').join('')+'</span></button>';
     }
     const sel = calItems(ui.calSel);
     body = '<div class="panel"><div class="month">'+DOW.map(x=>'<div class="dow">'+x+'</div>').join('')+cells+'</div>'+
-      '<div class="legend"><span><i></i>تسليم</span><span><i style="background:var(--s-preview)"></i>متابعة</span><span><i style="background:var(--danger)"></i>متأخر</span></div></div>'+
-      '<section class="section"><h2 style="margin-bottom:10px">'+esc(fmtLong(ui.calSel))+'</h2>'+(sel.length?'<div class="stack" style="gap:6px">'+sel.map(evHtml).join('')+'</div>':'<div class="panel"><div class="empty compact">لا مواعيد في هذا اليوم.</div></div>')+'</section>';
+      '<div class="legend"><span><i></i>تسليم</span><span><i style="background:var(--s-preview)"></i>متابعة</span><span><i style="background:var(--danger)"></i>متأخر</span><span><i style="background:var(--s-ready)"></i>ملاحظة</span></div></div>'+
+      '<section class="section"><h2 style="margin-bottom:10px">'+esc(fmtLong(ui.calSel))+'</h2>'+(sel.length?'<div class="stack" style="gap:6px">'+sel.map(evHtml).join('')+'</div>':'<div class="panel"><div class="empty compact">لا مواعيد ولا ملاحظات في هذا اليوم.</div></div>')+
+      '<form class="addline" data-form="note" data-day="'+ui.calSel+'"><input name="text" placeholder="أضيفي ملاحظة لهذا اليوم…" aria-label="ملاحظة جديدة لهذا اليوم" autocomplete="off"><button class="btn sm" type="submit">'+I.plus+'إضافة</button></form>'+
+      (sync.missingNotes ? '<p class="small muted" style="margin-top:8px">الملاحظات محفوظة على هذا الجهاز فقط حتى تشغّلي ملف <span class="ltr">reem-studio-update-notes.sql</span> في Supabase.</p>' : '')+'</section>';
   }else{
     const s0 = new Date(a); s0.setDate(a.getDate()-a.getDay());
     const s6 = new Date(s0); s6.setDate(s0.getDate()+6);
@@ -1314,11 +1330,11 @@ function viewCalendar(){
     let rows = '';
     for(let i=0;i<7;i++){
       const d = new Date(s0); d.setDate(s0.getDate()+i); const s = ymd(d), its = calItems(s);
-      rows += '<div class="wd'+(s===t?' today':'')+'"><div class="lab">'+DOW[i]+'<b class="num">'+d.getDate()+'</b></div><div class="its">'+(its.length?its.map(evHtml).join(''):'<span class="muted small" style="padding-top:6px">—</span>')+'</div></div>';
+      rows += '<div class="wd'+(s===t?' today':'')+'"><button type="button" class="lab" data-act="note-add" data-d="'+s+'" aria-label="إضافة ملاحظة '+esc(fmtLong(s))+'" style="border:0;background:none;text-align:start;font:inherit;cursor:pointer;padding:0">'+DOW[i]+'<b class="num">'+d.getDate()+'</b><span class="small" style="color:var(--accent)">+ ملاحظة</span></button><div class="its">'+(its.length?its.map(evHtml).join(''):'<span class="muted small" style="padding-top:6px">—</span>')+'</div></div>';
     }
     body = '<div class="panel week">'+rows+'</div>';
   }
-  return '<div class="page-head"><div><h1>التقويم</h1><p class="muted small">مواعيد التسليم والمتابعة</p></div>'+
+  return '<div class="page-head"><div><h1>التقويم</h1><p class="muted small">مواعيد التسليم والمتابعة وملاحظاتك</p></div>'+
     '<div class="seg" role="group" aria-label="نوع العرض"><button type="button" data-act="cal-mode" data-v="month" aria-pressed="'+(ui.calMode==='month')+'">شهري</button><button type="button" data-act="cal-mode" data-v="week" aria-pressed="'+(ui.calMode==='week')+'">أسبوعي</button></div></div>'+
     '<div class="cal-nav"><button class="icon-btn" type="button" data-act="cal-move" data-n="-1" aria-label="السابق">'+I.back+'</button><h2>'+esc(title)+'</h2><button class="btn sm" type="button" data-act="cal-today">اليوم</button><button class="icon-btn" type="button" data-act="cal-move" data-n="1" aria-label="التالي">'+I.next+'</button></div>'+body;
 }
@@ -1474,6 +1490,11 @@ document.addEventListener('click', e => {
       case 'follow-done': { const c = db.clients.find(x=>x.id===id); logEvent(null,'تمت المتابعة', c.id); c.followUp=''; save('سُجّلت المتابعة'); render(); break; }
       case 'cal-mode': ui.calMode = a.dataset.v; render(); break;
       case 'cal-day': ui.calSel = a.dataset.d; render(); break;
+      case 'note-add': openSheet('ملاحظة جديدة', noteForm(a.dataset.d)); setTimeout(()=>{ const x = $('#note-text'); if(x) x.focus(); }, 50); break;
+      case 'note-edit': { const n = db.notes.find(x=>x.id===id); if(n) openSheet('تعديل الملاحظة', noteForm(n.day, n)); break; }
+      case 'note-del': { db.notes = db.notes.filter(x=>x.id!==id); closeSheet(); save('حُذفت الملاحظة'); scheduleSync(0); render(); break; }
+      case 'rev-done': { e.preventDefault(); const r = db.revisions.find(x=>x.id===id); if(!r) break; r.status = 'done'; if(!r.doneDate) r.doneDate = today(); r.updatedAt = nowIso();
+        const p = db.projects.find(x=>x.id===r.projectId); if(p) touch(p); logEvent(r.projectId, 'تم تنفيذ التعديل: '+r.desc); save('تم تنفيذ التعديل ✓'); scheduleSync(0); render(); break; }
       case 'cal-today': ui.calAnchor = today(); ui.calSel = today(); render(); break;
       case 'cal-move': { const n = +a.dataset.n; const d = parseD(ui.calAnchor);
         if(ui.calMode==='month'){ d.setDate(1); d.setMonth(d.getMonth()+n); } else d.setDate(d.getDate()+7*n);
@@ -1562,6 +1583,11 @@ document.addEventListener('submit', e => {
     Object.assign(c, v, {needsDb: f.needsDb.value==='1', sold: f.sold.value==='1', notes: f.notes.value.trim(), updatedAt: nowIso()});
     save('تم حفظ الفكرة'); closeSheet(); render(); return;
   }
+  if(f.id==='note-form'){ const text = f.text.value.trim(); if(!text){ toast('اكتبي الملاحظة','err'); return; }
+    let n = f.dataset.id && db.notes.find(x=>x.id===f.dataset.id);
+    if(n){ n.text = text; n.updatedAt = nowIso(); } else { db.notes.push({id:uid(), day:f.dataset.day, text, createdAt:nowIso(), updatedAt:nowIso()}); }
+    closeSheet(); save(n?'تم حفظ الملاحظة':'أُضيفت الملاحظة'); scheduleSync(0); render(); return; }
+  if(f.dataset.form==='note'){ const text = f.text.value.trim(); if(!text) return; db.notes.push({id:uid(), day:f.dataset.day, text, createdAt:nowIso(), updatedAt:nowIso()}); save('أُضيفت الملاحظة'); scheduleSync(0); render(); const inp = document.querySelector('[data-form=note] input'); if(inp) inp.focus(); return; }
   if(f.id==='sync-config-form') submitSyncConfig(f);
   else if(f.id==='login-form') submitLogin(f);
   else if(f.id==='order-form') submitOrder(f);
@@ -1627,7 +1653,10 @@ const TABLES = [
     fromRow:w=>({id:w.id,projectId:w.project_id||null,clientId:w.client_id||null,text:w.text,at:TS(w.at)})},
   {key:'content', table:'content', optional:true,
     toRow:c=>({id:c.id,title:c.title||'',link:c.link||'',price:NUM(c.price),sold:!!c.sold,needs_db:!!c.needsDb,tiktok:!!c.tiktok,tiktok_story:!!c.tiktokStory,wa_status:!!c.waStatus,ig_story:!!c.igStory,ig_post:!!c.igPost,notes:c.notes||'',demo:!!c.demo,created_at:N(c.createdAt),updated_at:N(c.updatedAt)}),
-    fromRow:w=>({id:w.id,title:w.title,link:S(w.link),price:w.price===null||w.price===undefined?'':Number(w.price),sold:!!w.sold,needsDb:!!w.needs_db,tiktok:!!w.tiktok,tiktokStory:!!w.tiktok_story,waStatus:!!w.wa_status,igStory:!!w.ig_story,igPost:!!w.ig_post,notes:S(w.notes),demo:!!w.demo,createdAt:TS(w.created_at),updatedAt:TS(w.updated_at)})}
+    fromRow:w=>({id:w.id,title:w.title,link:S(w.link),price:w.price===null||w.price===undefined?'':Number(w.price),sold:!!w.sold,needsDb:!!w.needs_db,tiktok:!!w.tiktok,tiktokStory:!!w.tiktok_story,waStatus:!!w.wa_status,igStory:!!w.ig_story,igPost:!!w.ig_post,notes:S(w.notes),demo:!!w.demo,createdAt:TS(w.created_at),updatedAt:TS(w.updated_at)})},
+  {key:'notes', table:'day_notes', optional:true,
+    toRow:n=>({id:n.id,day:n.day,text:n.text||'',created_at:N(n.createdAt),updated_at:N(n.updatedAt)}),
+    fromRow:w=>({id:w.id,day:S(w.day),text:S(w.text),createdAt:TS(w.created_at),updatedAt:TS(w.updated_at)})}
 ];
 const sync = {client:null, session:null, status:'off', last:null, err:'', running:false, again:false, timer:null, channel:null};
 function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
@@ -1720,9 +1749,10 @@ async function syncNow(manual){
     const skip = new Set();
     for(const t of TABLES){
       try{ remote[t.key] = await fetchAll(t.table); }
-      catch(err){ if(t.optional && /relation|does not exist|schema cache|Could not find/i.test(String(err && err.message)) && !/column/i.test(String(err && err.message))){ skip.add(t.key); remote[t.key] = []; sync.missingContent = true; } else { err.table = t.table; err.op = 'قراءة'; throw err; } }
+      catch(err){ if(t.optional && /relation|does not exist|schema cache|Could not find/i.test(String(err && err.message)) && !/column/i.test(String(err && err.message))){ skip.add(t.key); remote[t.key] = []; if(t.key==='content') sync.missingContent = true; else sync.missingNotes = true; } else { err.table = t.table; err.op = 'قراءة'; throw err; } }
     }
     if(!skip.has('content')) sync.missingContent = false;
+    if(!skip.has('notes')) sync.missingNotes = false;
     const before = JSON.stringify(TABLES.map(t=>db[t.key]));
     const result = {}, upserts = {}, deletes = {}, newBase = {};
     for(const t of TABLES){
